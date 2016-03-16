@@ -1,0 +1,19 @@
+upstream php {
+    least_conn;
+    {{range service "php"}}
+    server {{.Address}}:{{.Port}} max_fails=3 fail_timeout=60 weight=1;{{end}}
+}
+
+server {
+    listen 80 default;
+
+    root /var/www/web;
+    index index.php;
+
+    location ~ \.php$ {
+        fastcgi_pass php;
+        include fastcgi_params;
+        fastcgi_index index.php;
+        fastcgi_param  SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}

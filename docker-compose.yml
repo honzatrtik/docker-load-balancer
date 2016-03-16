@@ -1,0 +1,53 @@
+version: '2'
+
+networks:
+  default:
+
+services:
+
+  consul:
+    command: -server -bootstrap -ui-dir /ui
+    image: progrium/consul
+    networks:
+      - default
+    ports:
+      - "8300:8300"
+      - "8400:8400"
+      - "8500:8500"
+      - "8600:53/udp"
+
+  registrator:
+    command: consul://consul:8500 -ip $DOCKER_IP -internal
+    image: gliderlabs/registrator
+    hostname: $DOCKER_IP
+    networks:
+      - default
+    volumes:
+      - "/var/run/docker.sock:/tmp/docker.sock"
+    depends_on:
+      - consul
+
+  nginx:
+    build: ./docker/nginx
+    environment:
+      CONSUL_URL: "consul:8500"
+    networks:
+      - default
+    ports:
+      - "80:80"
+    volumes_from:
+      - php
+    depends_on:
+      - php
+
+  php:
+    build: ./docker/php
+    ports:
+      - "9000"
+    volumes:
+      - "./app:/var/www"
+    environment:
+      SERVICE_NAME: php
+      SERVICE_TAGS: php
+    networks:
+      - default
